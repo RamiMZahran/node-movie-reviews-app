@@ -22,9 +22,7 @@ var MovieSchema = new mongoose.Schema({
         type: [String],
         required: true,
     },
-    reviews: {
-        type: [String]
-    }
+    reviews: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Review' }]
 });
 
 var Movie = mongoose.model('Movie', MovieSchema);
