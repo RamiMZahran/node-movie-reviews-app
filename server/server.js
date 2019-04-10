@@ -30,16 +30,34 @@ app.post('/movies', (req, res) => {
         res.status(400).send(e);
     });
 });
+
 //Get all movies
 app.get('/movies', (req, res) => {
-    Movie.find()
+    const sb = req.query.sortBy;
+    var filter;
+    if(req.query.genre){
+        filter = {
+            genre: req.query.genre
+        };
+    }
+    if(req.query.year){
+        filter = {
+            ...filter,
+            year: req.query.year
+        };
+    }
+
+    const sortby = sb==='name'? {name : 1} : {genre : 1};
+    Movie.find(filter)
     .populate('reviews')
+    .sort(sortby)
     .then((movies) => {
         res.send({ movies });
     }, (e) => {
         res.status(400).send(e);
     });
 });
+
 //Delete a movie by id
 /////////////////////////////////////////////////////////////
 //      To Be Authenticated                                //
@@ -55,6 +73,11 @@ app.delete('/movies/:id', (req, res) => {
         if (!movie) {
             return res.status(404).send();
         }
+        var movieReviews = movie.reviews;
+        movieReviews.forEach(rev => {
+            Review.findByIdAndRemove(rev).exec();
+        });
+
         res.send({ movie });
     }).catch((e) => {
         res.status(400).send();
@@ -67,7 +90,7 @@ app.delete('/movies/:id', (req, res) => {
 app.patch('/movies/:id', (req, res) => {
     var id = req.params.id;
     //pick up only the body parts that belong to the movie
-    var body = _.pick(req.body, ['name', 'genre', 'year', 'actors', 'reviews']);
+    var body = _.pick(req.body, ['name', 'genre', 'year', 'actors']);
     if (!ObjectID.isValid(id)) {
         return res.status(404).send();
     }
@@ -103,7 +126,7 @@ app.post('/reviews', (req, res) => {
         res.status(400).send(e);
     });
 });
-
+// Get all reviews
 app.get('/reviews', (req, res) => {
     Review.find()
     .populate('movieId')
@@ -114,6 +137,54 @@ app.get('/reviews', (req, res) => {
     });
     
 });
+
+//Delete a review by id
+/////////////////////////////////////////////////////////////
+//      To Be Authenticated                                //
+////////////////////////////////////////////////////////////
+app.delete('/reviews/:id', (req, res) => {
+    var id = req.params.id;
+
+    if (!ObjectID.isValid(id)) {
+        return res.status(404).send();
+    }
+
+    Review.findByIdAndRemove(id).then((review) => {
+        if (!review) {
+            return res.status(404).send();
+        }
+
+        Movie.findByIdAndUpdate(review.movieId, { $pull: { reviews : review._id } } ).exec();        
+
+        res.send({ review });
+    }).catch((e) => {
+        res.status(400).send();
+    });
+});
+
+//Edit a review by id
+/////////////////////////////////////////////////////////////
+//      To Be Authenticated                                //
+////////////////////////////////////////////////////////////
+app.patch('/reviews/:id', (req, res) => {
+    var id = req.params.id;
+    //pick up only the body parts that belong to the review
+    var body = _.pick(req.body, ['rate','description','title']);
+    if (!ObjectID.isValid(id)) {
+        return res.status(404).send();
+    }
+
+    Review.findByIdAndUpdate(id, { $set: body }, { new: true }).then((review) => {
+        if (!review) {
+            return res.status(404).send();
+        }
+
+        res.send({ review });
+    }).catch((e) => {
+        res.status(400).send();
+    })
+});
+
 
 
 app.listen(port, () => {
