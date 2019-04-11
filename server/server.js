@@ -16,10 +16,7 @@ const port = process.env.PORT || 3000;
 
 app.use(bodyParser.json());
 //Add movie
-/////////////////////////////////////////////////////////////
-//      To Be Authenticated                                //
-////////////////////////////////////////////////////////////
-app.post('/movies', (req, res) => {
+app.post('/movies', authenticate, (req, res) => {
     var movie = new Movie({
         name: req.body.name,
         genre: req.body.genre,
@@ -62,10 +59,7 @@ app.get('/movies', (req, res) => {
 });
 
 //Delete a movie by id
-/////////////////////////////////////////////////////////////
-//      To Be Authenticated                                //
-////////////////////////////////////////////////////////////
-app.delete('/movies/:id', (req, res) => {
+app.delete('/movies/:id', authenticate, (req, res) => {
     var id = req.params.id;
 
     if (!ObjectID.isValid(id)) {
@@ -87,10 +81,7 @@ app.delete('/movies/:id', (req, res) => {
     });
 });
 //Edit a movie by id
-/////////////////////////////////////////////////////////////
-//      To Be Authenticated                                //
-////////////////////////////////////////////////////////////
-app.patch('/movies/:id', (req, res) => {
+app.patch('/movies/:id', authenticate, (req, res) => {
     var id = req.params.id;
     //pick up only the body parts that belong to the movie
     var body = _.pick(req.body, ['name', 'genre', 'year', 'actors']);
@@ -111,10 +102,7 @@ app.patch('/movies/:id', (req, res) => {
 
 
 //Add review
-/////////////////////////////////////////////////////////////
-//      To Be Authenticated                                //
-////////////////////////////////////////////////////////////
-app.post('/reviews', (req, res) => {
+app.post('/reviews', authenticate, (req, res) => {
     var review = new Review({
         _id: new ObjectID(),
         movieId: req.body.movieId,
@@ -142,10 +130,7 @@ app.get('/reviews', (req, res) => {
 });
 
 //Delete a review by id
-/////////////////////////////////////////////////////////////
-//      To Be Authenticated                                //
-////////////////////////////////////////////////////////////
-app.delete('/reviews/:id', (req, res) => {
+app.delete('/reviews/:id', authenticate, (req, res) => {
     var id = req.params.id;
 
     if (!ObjectID.isValid(id)) {
@@ -166,10 +151,7 @@ app.delete('/reviews/:id', (req, res) => {
 });
 
 //Edit a review by id
-/////////////////////////////////////////////////////////////
-//      To Be Authenticated                                //
-////////////////////////////////////////////////////////////
-app.patch('/reviews/:id', (req, res) => {
+app.patch('/reviews/:id', authenticate, (req, res) => {
     var id = req.params.id;
     //pick up only the body parts that belong to the review
     var body = _.pick(req.body, ['rate', 'description', 'title']);
