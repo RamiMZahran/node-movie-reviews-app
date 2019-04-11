@@ -7,6 +7,7 @@ const { ObjectID } = require('mongodb');
 var { mongoose } = require('./db/mongoose');
 var { Movie } = require('./models/movie');
 var { Review } = require('./models/review');
+var { User } = require('./models/user');
 
 var app = express();
 const port = process.env.PORT || 3000;
@@ -31,7 +32,7 @@ app.post('/movies', (req, res) => {
     });
 });
 
-//Get all movies
+//Get all movies With sort and filter options
 app.get('/movies', (req, res) => {
     const sb = req.query.sortBy;
     var filter;
@@ -183,6 +184,17 @@ app.patch('/reviews/:id', (req, res) => {
     }).catch((e) => {
         res.status(400).send();
     })
+});
+
+//Add(signup) User
+app.post('/users/signup', (req, res) => {
+    var body = _.pick(req.body,['email','password']);
+    var user = new User(body);
+    user.save().then((saveduser) => {
+        res.send(saveduser);
+    }, (e) => {
+        res.status(400).send(e);
+    });
 });
 
 
