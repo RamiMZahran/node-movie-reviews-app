@@ -38,27 +38,27 @@ app.post('/movies', (req, res) => {
 app.get('/movies', (req, res) => {
     const sb = req.query.sortBy;
     var filter;
-    if(req.query.genre){
+    if (req.query.genre) {
         filter = {
             genre: req.query.genre
         };
     }
-    if(req.query.year){
+    if (req.query.year) {
         filter = {
             ...filter,
             year: req.query.year
         };
     }
 
-    const sortby = sb==='name'? {name : 1} : {genre : 1};
+    const sortby = sb === 'name' ? { name: 1 } : { genre: 1 };
     Movie.find(filter)
-    .populate('reviews')
-    .sort(sortby)
-    .then((movies) => {
-        res.send({ movies });
-    }, (e) => {
-        res.status(400).send(e);
-    });
+        .populate('reviews')
+        .sort(sortby)
+        .then((movies) => {
+            res.send({ movies });
+        }, (e) => {
+            res.status(400).send(e);
+        });
 });
 
 //Delete a movie by id
@@ -122,7 +122,7 @@ app.post('/reviews', (req, res) => {
         description: req.body.description,
         title: req.body.title,
     });
-    Movie.findByIdAndUpdate(req.body.movieId, { $push: { reviews : review._id } } ).exec();
+    Movie.findByIdAndUpdate(req.body.movieId, { $push: { reviews: review._id } }).exec();
     review.save().then((doc) => {
         res.send(doc);
     }, (e) => {
@@ -132,13 +132,13 @@ app.post('/reviews', (req, res) => {
 // Get all reviews
 app.get('/reviews', (req, res) => {
     Review.find()
-    .populate('movieId')
-    .then((reviews) => {
-        res.status(200).send({reviews});
-    }, (e) => {
-        res.status(400).send(e);
-    });
-    
+        .populate('movieId')
+        .then((reviews) => {
+            res.status(200).send({ reviews });
+        }, (e) => {
+            res.status(400).send(e);
+        });
+
 });
 
 //Delete a review by id
@@ -157,7 +157,7 @@ app.delete('/reviews/:id', (req, res) => {
             return res.status(404).send();
         }
 
-        Movie.findByIdAndUpdate(review.movieId, { $pull: { reviews : review._id } } ).exec();        
+        Movie.findByIdAndUpdate(review.movieId, { $pull: { reviews: review._id } }).exec();
 
         res.send({ review });
     }).catch((e) => {
@@ -172,7 +172,7 @@ app.delete('/reviews/:id', (req, res) => {
 app.patch('/reviews/:id', (req, res) => {
     var id = req.params.id;
     //pick up only the body parts that belong to the review
-    var body = _.pick(req.body, ['rate','description','title']);
+    var body = _.pick(req.body, ['rate', 'description', 'title']);
     if (!ObjectID.isValid(id)) {
         return res.status(404).send();
     }
@@ -202,7 +202,18 @@ app.post('/users/signup', (req, res) => {
     });
 });
 
+// Login User
+app.post('/users/login', (req, res) => {
+    var body = _.pick(req.body, ['email', 'password']);
 
+    User.findByCredentials(body.email, body.password).then((user) => {
+        return user.generateAuthToken().then((token) => {
+            res.header('x-auth', token).send(user);
+        });
+    }).catch((e) => {
+        res.status(400).send();
+    });
+});
 
 
 app.listen(port, () => {
