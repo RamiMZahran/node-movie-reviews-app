@@ -1,3 +1,4 @@
+require('./config/config');
 const express = require('express');
 const bodyParser = require('body-parser');
 const _ = require('lodash');
@@ -12,7 +13,7 @@ var { authenticate } = require('./middleware/authenticate');
 
 
 var app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT;
 
 app.use(bodyParser.json());
 //Add movie
@@ -48,9 +49,15 @@ app.get('/movies', async (req, res) => {
             year: req.query.year
         };
     }
-    const sortby = sb === 'name' ? { name: 1 } : { genre: 1 };
+    var sortby;
+    if (sb === 'name')
+        sortby = { name: 1 };
+    else if (sb === 'genre') {
+        sortby = { genre: 1 };
+    }
     try {
-        const movies = await Movie.find(filter).populate('reviews').sort(sortby);
+        const movies = await Movie.find(filter).select('actors reviews name genre year')
+            .populate('reviews').sort(sortby);
         res.send({ movies });
     } catch (e) {
         res.status(400).send(e);
@@ -119,7 +126,7 @@ app.post('/reviews', authenticate, async (req, res) => {
 // Get all reviews
 app.get('/reviews', async (req, res) => {
     try {
-        const reviews = await Review.find().populate('movieId');
+        const reviews = await Review.find().select('movieId rate description title').populate('movieId');
         res.status(200).send({ reviews });
     } catch (e) {
         res.status(400).send(e);
@@ -192,6 +199,15 @@ app.post('/users/login', async (req, res) => {
     }
 });
 
+app.use((req, res, next) => {
+    const error = new Error('Not Found');
+    res.status(400);
+    res.send({
+        error: {
+            message: error.message
+        }
+    })
+});
 
 app.listen(port, () => {
     console.log(`Started on port ${port}`);
