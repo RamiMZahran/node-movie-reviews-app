@@ -16,23 +16,25 @@ const port = process.env.PORT || 3000;
 
 app.use(bodyParser.json());
 //Add movie
-app.post('/movies', authenticate, (req, res) => {
-    var movie = new Movie({
-        name: req.body.name,
-        genre: req.body.genre,
-        year: req.body.year,
-        actors: req.body.actors,
-        reviews: []
-    });
-    movie.save().then((doc) => {
+app.post('/movies', authenticate, async (req, res) => {
+
+    try {
+        const movie = new Movie({
+            name: req.body.name,
+            genre: req.body.genre,
+            year: req.body.year,
+            actors: req.body.actors,
+            reviews: []
+        });
+        const doc = await movie.save();
         res.send(doc);
-    }, (e) => {
+    } catch (e) {
         res.status(400).send(e);
-    });
+    }
 });
 
 //Get all movies With sort and filter options
-app.get('/movies', (req, res) => {
+app.get('/movies', async (req, res) => {
     const sb = req.query.sortBy;
     var filter;
     if (req.query.genre) {
@@ -46,27 +48,25 @@ app.get('/movies', (req, res) => {
             year: req.query.year
         };
     }
-
     const sortby = sb === 'name' ? { name: 1 } : { genre: 1 };
-    Movie.find(filter)
-        .populate('reviews')
-        .sort(sortby)
-        .then((movies) => {
-            res.send({ movies });
-        }, (e) => {
-            res.status(400).send(e);
-        });
+    try {
+        const movies = await Movie.find(filter).populate('reviews').sort(sortby);
+        res.send({ movies });
+    } catch (e) {
+        res.status(400).send(e);
+
+    }
 });
 
 //Delete a movie by id
-app.delete('/movies/:id', authenticate, (req, res) => {
-    var id = req.params.id;
+app.delete('/movies/:id', authenticate, async (req, res) => {
+    const id = req.params.id;
 
     if (!ObjectID.isValid(id)) {
         return res.status(404).send();
     }
-
-    Movie.findByIdAndRemove(id).then((movie) => {
+    try {
+        const movie = await Movie.findByIdAndRemove(id);
         if (!movie) {
             return res.status(404).send();
         }
@@ -74,36 +74,34 @@ app.delete('/movies/:id', authenticate, (req, res) => {
         movieReviews.forEach(rev => {
             Review.findByIdAndRemove(rev).exec();
         });
-
         res.send({ movie });
-    }).catch((e) => {
+    } catch (e) {
         res.status(400).send();
-    });
+    }
 });
 //Edit a movie by id
-app.patch('/movies/:id', authenticate, (req, res) => {
-    var id = req.params.id;
+app.patch('/movies/:id', authenticate, async (req, res) => {
+    const id = req.params.id;
     //pick up only the body parts that belong to the movie
-    var body = _.pick(req.body, ['name', 'genre', 'year', 'actors']);
+    const body = _.pick(req.body, ['name', 'genre', 'year', 'actors']);
     if (!ObjectID.isValid(id)) {
         return res.status(404).send();
     }
-
-    Movie.findByIdAndUpdate(id, { $set: body }, { new: true }).then((movie) => {
+    try {
+        const movie = await Movie.findByIdAndUpdate(id, { $set: body }, { new: true });
         if (!movie) {
             return res.status(404).send();
         }
-
         res.send({ movie });
-    }).catch((e) => {
+    } catch (e) {
         res.status(400).send();
-    })
+    }
 });
 
 
 //Add review
-app.post('/reviews', authenticate, (req, res) => {
-    var review = new Review({
+app.post('/reviews', authenticate, async (req, res) => {
+    const review = new Review({
         _id: new ObjectID(),
         movieId: req.body.movieId,
         rate: req.body.rate,
@@ -111,90 +109,87 @@ app.post('/reviews', authenticate, (req, res) => {
         title: req.body.title,
     });
     Movie.findByIdAndUpdate(req.body.movieId, { $push: { reviews: review._id } }).exec();
-    review.save().then((doc) => {
+    try {
+        const doc = await review.save();
         res.send(doc);
-    }, (e) => {
+    } catch (e) {
         res.status(400).send(e);
-    });
+    }
 });
 // Get all reviews
-app.get('/reviews', (req, res) => {
-    Review.find()
-        .populate('movieId')
-        .then((reviews) => {
-            res.status(200).send({ reviews });
-        }, (e) => {
-            res.status(400).send(e);
-        });
-
+app.get('/reviews', async (req, res) => {
+    try {
+        const reviews = await Review.find().populate('movieId');
+        res.status(200).send({ reviews });
+    } catch (e) {
+        res.status(400).send(e);
+    }
 });
 
 //Delete a review by id
-app.delete('/reviews/:id', authenticate, (req, res) => {
-    var id = req.params.id;
+app.delete('/reviews/:id', authenticate, async (req, res) => {
+    const id = req.params.id;
 
     if (!ObjectID.isValid(id)) {
         return res.status(404).send();
     }
 
-    Review.findByIdAndRemove(id).then((review) => {
+    try {
+        const review = await Review.findByIdAndRemove(id);
         if (!review) {
             return res.status(404).send();
         }
-
         Movie.findByIdAndUpdate(review.movieId, { $pull: { reviews: review._id } }).exec();
-
         res.send({ review });
-    }).catch((e) => {
+    } catch (e) {
         res.status(400).send();
-    });
+    }
 });
 
 //Edit a review by id
-app.patch('/reviews/:id', authenticate, (req, res) => {
-    var id = req.params.id;
+app.patch('/reviews/:id', authenticate, async (req, res) => {
+    const id = req.params.id;
     //pick up only the body parts that belong to the review
-    var body = _.pick(req.body, ['rate', 'description', 'title']);
+    const body = _.pick(req.body, ['rate', 'description', 'title']);
     if (!ObjectID.isValid(id)) {
         return res.status(404).send();
     }
-
-    Review.findByIdAndUpdate(id, { $set: body }, { new: true }).then((review) => {
+    try {
+        const review = await Review.findByIdAndUpdate(id, { $set: body }, { new: true });
         if (!review) {
             return res.status(404).send();
         }
-
         res.send({ review });
-    }).catch((e) => {
+    } catch (e) {
         res.status(400).send();
-    })
+    }
 });
 
 //Add(signup) User
-app.post('/users/signup', (req, res) => {
-    var body = _.pick(req.body, ['email', 'password']);
-    var user = new User(body);
+app.post('/users/signup', async (req, res) => {
+    try {
+        const body = _.pick(req.body, ['email', 'password']);
+        const user = new User(body);
 
-    user.save().then(() => {
-        return user.generateAuthToken();
-    }).then(token => {
+        await user.save();
+        const token = await user.generateAuthToken();
         res.header('x-auth', token).send(user);
-    }).catch(e => {
+
+    } catch (e) {
         res.status(400).send(e);
-    });
+    }
 });
 
 // Login User
-app.post('/users/login', (req, res) => {
-    var body = _.pick(req.body, ['email', 'password']);
-
-    User.findByCredentials(body.email, body.password).then((user) => {
-        return user.generateAuthToken().then((token) => {
-            res.header('x-auth', token).send(user);
-        });
-    }).catch((e) => {
+app.post('/users/login', async (req, res) => {
+    try {
+        const body = _.pick(req.body, ['email', 'password']);
+        const user = await User.findByCredentials(body.email, body.password);
+        const token = await user.generateAuthToken();
+        res.header('x-auth', token).send(user);
+    } catch (e) {
         res.status(400).send();
-    });
+    }
 });
 
 
