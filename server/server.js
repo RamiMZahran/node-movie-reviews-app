@@ -108,6 +108,10 @@ app.patch('/movies/:id', authenticate, async (req, res) => {
 
 //Add review
 app.post('/reviews', authenticate, async (req, res) => {
+    var movie = await Movie.findById(req.body.movieId);
+    if(!movie){
+        return res.status(400).send({error:"Wrong Movie ID"});
+    }
     const review = new Review({
         _id: new ObjectID(),
         movieId: req.body.movieId,
@@ -115,8 +119,8 @@ app.post('/reviews', authenticate, async (req, res) => {
         description: req.body.description,
         title: req.body.title,
     });
-    Movie.findByIdAndUpdate(req.body.movieId, { $push: { reviews: review._id } }).exec();
     try {
+        Movie.findByIdAndUpdate(req.body.movieId, { $push: { reviews: review._id } }).exec();
         const doc = await review.save();
         res.send(doc);
     } catch (e) {
